@@ -24,7 +24,11 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+
+// Redirect root to frontend
+app.get("/", (req, res) => {
+  res.redirect("http://10.39.30.102:3000");
+});
 
 // ── In-memory store ────────────────────────────────────────────────────────────
 // Per-node history:  { [nodeId]: Reading[] }
