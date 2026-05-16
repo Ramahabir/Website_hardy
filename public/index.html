@@ -607,6 +607,15 @@
 </div>
 
 <script>
+
+  const API_BASE = "http://10.39.30.101:3000"; // backend CT IP
+
+// loadHistory() — change:
+const json = await fetch(`${API_BASE}/api/readings`).then(r => r.json());
+
+// connectSSE() — change:
+const es = new EventSource(`${API_BASE}/api/stream`);
+
   /* ════════════════════════════════
      Chart setup
   ════════════════════════════════ */
