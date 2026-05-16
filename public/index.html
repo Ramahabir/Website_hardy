@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plant Monitor</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f8f9fa;
+      --white:     #ffffff;
+      --border:    #e5e7eb;
+      --text:      #111827;
+      --sub:       #6b7280;
+      --light:     #f3f4f6;
+      --blue:      #3b82f6;
+      --green:     #22c55e;
+      --amber:     #f59e0b;
+      --red:       #dc2626;
+      --red-bg:    #fef2f2;
+      --green-bg:  #f0fdf4;
+      --amber-bg:  #fffbeb;
+      --blue-bg:   #eff6ff;
+    }
+
+    html, body {
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--text);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .header-sub {
+      font-size: 12px;
+      color: var(--sub);
+      margin-top: 1px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: var(--white);
+      font-size: 12px;
+      color: var(--sub);
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .status-pill.live {
+      border-color: #bbf7d0;
+      background: var(--green-bg);
+      color: var(--green);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #d1d5db;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .status-pill.live .status-dot {
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* ── Cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 720px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 420px) { .cards { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .card-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sub);
+    }
+
+    .card-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+    }
+
+    .icon-temp  { background: var(--amber-bg); }
+    .icon-humid { background: var(--blue-bg); }
+    .icon-soil  { background: var(--green-bg); }
+    .icon-relay { background: var(--light); }
+
+    .card-value {
+      font-size: 32px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 6px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .card-unit {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--sub);
+      margin-left: 2px;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .card-note {
+      font-size: 11px;
+      color: var(--sub);
+    }
+
+    .card-note.alert { color: var(--red); }
+
+    .relay-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .relay-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #d1d5db;
+      flex-shrink: 0;
+    }
+
+    .relay-dot.on {
+      background: var(--red);
+      animation: blink 1s infinite;
+    }
+
+    .relay-value {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    /* ── Chart card ── */
+    .chart-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .chart-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .chart-sub {
+      font-size: 11px;
+      color: var(--sub);
+      margin-top: 3px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Filter buttons ── */
+    .filter-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sub);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      border-color: #9ca3af;
+      color: var(--text);
+    }
+
+    .filter-btn .btn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .filter-btn.active-all {
+      background: var(--text);
+      border-color: var(--text);
+      color: #fff;
+    }
+
+    .filter-btn.active-temp {
+      background: var(--amber-bg);
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .filter-btn.active-humid {
+      background: var(--blue-bg);
+      border-color: var(--blue);
+      color: #1e40af;
+    }
+
+    .filter-btn.active-soil {
+      background: var(--green-bg);
+      border-color: var(--green);
+      color: #14532d;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+    }
+
+    /* ── History table ── */
+    .table-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .table-toolbar-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .table-count {
+      font-size: 11px;
+      color: var(--sub);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .table-clear-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: var(--sub);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .table-clear-btn:hover {
+      background: var(--red-bg);
+      border-color: #fca5a5;
+      color: var(--red);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--light);
+    }
+
+    thead th {
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+
+    tbody td {
+      padding: 10px 16px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    td.td-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--sub);
+    }
+
+    td.td-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+    }
+
+    td.td-num.warn { color: var(--red); }
+
+    .relay-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .relay-badge.on  { background: var(--red-bg);   color: var(--red); }
+    .relay-badge.off { background: var(--light);     color: var(--sub); }
+
+    .relay-badge-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .empty-row td {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .footer span {
+      font-size: 11px;
+      color: var(--sub);
+      font-family: 'DM Mono', monospace;
+    }
+
+    @keyframes fadein { from { opacity: 0.3; } to { opacity: 1; } }
+    .flash { animation: fadein 0.35s ease; }
+
+    /* row slide-in */
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .row-new { animation: rowIn 0.25s ease forwards; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">&#127807;</div>
+      <div>
+        <div class="header-title">Plant Monitor</div>
+        <div class="header-sub">ESP32 &middot; DHT22 &middot; Capacitive Soil Sensor</div>
+      </div>
+    </div>
+    <div class="status-pill" id="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">No data</span>
+    </div>
+  </div>
+
+  <!-- ── Metric cards ── -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Temperature</span>
+        <div class="card-icon icon-temp">&#127777;&#65039;</div>
+      </div>
+      <div class="card-value" id="val-temp">&mdash;<span class="card-unit">&deg;C</span></div>
+      <div class="card-note" id="note-temp">threshold &gt; 35 &deg;C</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Humidity</span>
+        <div class="card-icon icon-humid">&#128167;</div>
+      </div>
+      <div class="card-value" id="val-humid">&mdash;<span class="card-unit">%</span></div>
+      <div class="card-note" id="note-humid">threshold &gt; 80 %</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Soil Moisture</span>
+        <div class="card-icon icon-soil">&#127807;</div>
+      </div>
+      <div class="card-value" id="val-soil">&mdash;<span class="card-unit">%</span></div>
+      <div class="card-note" id="note-soil">threshold &lt; 30 %</div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Relay</span>
+        <div class="card-icon icon-relay">&#9889;</div>
+      </div>
+      <div class="relay-row">
+        <div class="relay-dot" id="relay-dot"></div>
+        <span class="relay-value" id="relay-text">OFF</span>
+      </div>
+      <div class="card-note" id="note-relay">pump inactive</div>
+    </div>
+  </div>
+
+  <!-- ── Chart ── -->
+  <div class="section-label">Sensor History</div>
+  <div class="chart-card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">Live readings</div>
+        <div class="chart-sub" id="point-count-label">0 data points</div>
+      </div>
+      <div class="filter-btns">
+        <button class="filter-btn active-all" id="btn-all" onclick="setFilter('all')">
+          All
+        </button>
+        <button class="filter-btn" id="btn-temp" onclick="setFilter('temp')">
+          <span class="btn-dot" style="background:#f59e0b"></span>Temperature
+        </button>
+        <button class="filter-btn" id="btn-humid" onclick="setFilter('humid')">
+          <span class="btn-dot" style="background:#3b82f6"></span>Humidity
+        </button>
+        <button class="filter-btn" id="btn-soil" onclick="setFilter('soil')">
+          <span class="btn-dot" style="background:#22c55e"></span>Soil
+        </button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="sensorChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── History table ── -->
+  <div class="section-label">Reading Log</div>
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div>
+        <div class="table-toolbar-title">All readings</div>
+        <div class="table-count" id="row-count-label">0 entries</div>
+      </div>
+      <button class="table-clear-btn" onclick="clearTable()">Clear log</button>
+    </div>
+    <div class="table-scroll">
+      <table id="history-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Date &amp; Time</th>
+            <th>Temp (&deg;C)</th>
+            <th>Humidity (%)</th>
+            <th>Soil (%)</th>
+            <th>Relay</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody">
+          <tr class="empty-row" id="empty-row">
+            <td colspan="6">No readings yet &mdash; waiting for data&hellip;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <span>Plant Monitor &mdash; ESP32 &#8594; Node.js &#8594; Browser</span>
+    <span id="last-update">Last update: &mdash;</span>
+  </div>
+
+</div>
+
+<script>
+  /* ════════════════════════════════
+     Chart setup
+  ════════════════════════════════ */
+  const ctx = document.getElementById("sensorChart").getContext("2d");
+
+  function makeDataset(label, color) {
+    return {
+      label,
+      data: [],
+      borderColor: color,
+      backgroundColor: color + "18",
+      borderWidth: 1.8,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      pointHoverBackgroundColor: color,
+      tension: 0.4,
+      fill: true,
+      yAxisID: "y",
+    };
+  }
+
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        makeDataset("Temperature", "#f59e0b"),
+        makeDataset("Humidity",    "#3b82f6"),
+        makeDataset("Soil",        "#22c55e"),
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 200 },
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: {
+          ticks: {
+            color: "#9ca3af",
+            font: { family: "DM Mono", size: 10 },
+            maxTicksLimit: 8,
+            maxRotation: 0,
+          },
+          grid:   { color: "#f3f4f6" },
+          border: { color: "#e5e7eb" },
+        },
+        y: {
+          min: 0,
+          max: 100,
+          ticks: {
+            color: "#9ca3af",
+            font: { family: "DM Mono", size: 10 },
+            callback: v => v + "",
+            maxTicksLimit: 6,
+          },
+          grid:   { color: "#f3f4f6" },
+          border: { color: "#e5e7eb" },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#111827",
+          titleColor: "#f9fafb",
+          bodyColor: "#d1d5db",
+          padding: 10,
+          cornerRadius: 8,
+          titleFont: { family: "DM Mono", size: 11, weight: "500" },
+          bodyFont:  { family: "DM Mono", size: 11 },
+          callbacks: {
+            label: c => {
+              const units = ["\u00b0C", "%", "%"];
+              return "  " + c.dataset.label + ": " + c.parsed.y + units[c.datasetIndex];
+            },
+          },
+        },
+      },
+    },
+  });
+
+  /* ════════════════════════════════
+     Filter logic
+  ════════════════════════════════ */
+  let currentFilter = "all";
+
+  const filterConfig = {
+    all:   { btns: ["btn-all"], activeClass: "active-all",   visible: [true, true, true] },
+    temp:  { btns: ["btn-temp"],  activeClass: "active-temp",  visible: [true, false, false] },
+    humid: { btns: ["btn-humid"], activeClass: "active-humid", visible: [false, true, false] },
+    soil:  { btns: ["btn-soil"],  activeClass: "active-soil",  visible: [false, false, true] },
+  };
+
+  function setFilter(f) {
+    currentFilter = f;
+
+    // Reset all buttons
+    ["btn-all","btn-temp","btn-humid","btn-soil"].forEach(id => {
+      document.getElementById(id).className = "filter-btn";
+    });
+
+    // Activate selected
+    const cfg = filterConfig[f];
+    cfg.btns.forEach(id => {
+      document.getElementById(id).className = "filter-btn " + cfg.activeClass;
+    });
+
+    // Toggle dataset visibility
+    chart.data.datasets.forEach((ds, i) => {
+      ds.hidden = !cfg.visible[i];
+    });
+    chart.update();
+  }
+
+  /* ════════════════════════════════
+     Table logic
+  ════════════════════════════════ */
+  let tableRows = [];
+
+  function fmtDateTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" })
+      + " " + d.toLocaleTimeString([], { hour12: false });
+  }
+
+  function addTableRow(r, prepend = false) {
+    const empty = document.getElementById("empty-row");
+    if (empty) empty.remove();
+
+    const isHighT  = r.temperature > 35;
+    const isHighH  = r.humidity > 80;
+    const isLowS   = r.soil < 30;
+    const rowIndex = prepend ? tableRows.length + 1 : (tableRows.length + 1);
+
+    const tr = document.createElement("tr");
+    tr.className = "row-new";
+    tr.innerHTML = `
+      <td class="td-time">${rowIndex}</td>
+      <td class="td-time">${fmtDateTime(r.timestamp)}</td>
+      <td class="td-num ${isHighT ? "warn" : ""}">${r.temperature.toFixed(1)}</td>
+      <td class="td-num ${isHighH ? "warn" : ""}">${r.humidity.toFixed(1)}</td>
+      <td class="td-num ${isLowS  ? "warn" : ""}">${r.soil}</td>
+      <td>
+        <span class="relay-badge ${r.relay ? "on" : "off"}">
+          <span class="relay-badge-dot"></span>${r.relay ? "ON" : "OFF"}
+        </span>
+      </td>
+    `;
+
+    const tbody = document.getElementById("history-tbody");
+    if (prepend) {
+      tbody.insertBefore(tr, tbody.firstChild);
+    } else {
+      tbody.appendChild(tr);
+    }
+
+    tableRows.push(r);
+    document.getElementById("row-count-label").textContent =
+      tableRows.length + (tableRows.length === 1 ? " entry" : " entries");
+  }
+
+  function clearTable() {
+    tableRows = [];
+    const tbody = document.getElementById("history-tbody");
+    tbody.innerHTML = `<tr class="empty-row" id="empty-row">
+      <td colspan="6">Log cleared &mdash; waiting for new data&hellip;</td>
+    </tr>`;
+    document.getElementById("row-count-label").textContent = "0 entries";
+  }
+
+  /* ════════════════════════════════
+     Helpers
+  ════════════════════════════════ */
+  let readingCount = 0;
+
+  function flash(el) {
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+  }
+
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleTimeString([], { hour12: false });
+  }
+
+  /* ════════════════════════════════
+     Apply reading to cards
+  ════════════════════════════════ */
+  function applyReading(r) {
+    readingCount++;
+
+    const te = document.getElementById("val-temp");
+    const he = document.getElementById("val-humid");
+    const se = document.getElementById("val-soil");
+
+    te.innerHTML = r.temperature.toFixed(1) + '<span class="card-unit">&deg;C</span>';
+    he.innerHTML = r.humidity.toFixed(1)    + '<span class="card-unit">%</span>';
+    se.innerHTML = r.soil                   + '<span class="card-unit">%</span>';
+    [te, he, se].forEach(flash);
+
+    const nt = document.getElementById("note-temp");
+    const nh = document.getElementById("note-humid");
+    const ns = document.getElementById("note-soil");
+
+    nt.textContent = r.temperature > 35 ? "Above threshold" : "threshold > 35 \u00b0C";
+    nt.className   = "card-note" + (r.temperature > 35 ? " alert" : "");
+
+    nh.textContent = r.humidity > 80 ? "Above threshold" : "threshold > 80 %";
+    nh.className   = "card-note" + (r.humidity > 80 ? " alert" : "");
+
+    ns.textContent = r.soil < 30 ? "Below threshold \u2014 needs water" : "threshold < 30 %";
+    ns.className   = "card-note" + (r.soil < 30 ? " alert" : "");
+
+    const dot = document.getElementById("relay-dot");
+    document.getElementById("relay-text").textContent = r.relay ? "ON" : "OFF";
+    dot.className = "relay-dot" + (r.relay ? " on" : "");
+    document.getElementById("note-relay").textContent = r.relay ? "pump is active" : "pump inactive";
+
+    document.getElementById("status-pill").className = "status-pill live";
+    document.getElementById("status-text").textContent = "Live";
+    document.getElementById("last-update").textContent = "Last update: " + fmtTime(r.timestamp);
+  }
+
+  /* ════════════════════════════════
+     Push to chart
+  ════════════════════════════════ */
+  function pushChart(r) {
+    chart.data.labels.push(fmtTime(r.timestamp));
+    chart.data.datasets[0].data.push(r.temperature);
+    chart.data.datasets[1].data.push(r.humidity);
+    chart.data.datasets[2].data.push(r.soil);
+
+    if (chart.data.labels.length > 100) {
+      chart.data.labels.shift();
+      chart.data.datasets.forEach(ds => ds.data.shift());
+    }
+
+    chart.update("none");
+    document.getElementById("point-count-label").textContent =
+      chart.data.labels.length + " data points";
+  }
+
+  /* ════════════════════════════════
+     Load history on first open
+  ════════════════════════════════ */
+  async function loadHistory() {
+    try {
+      const json = await fetch("/api/history").then(r => r.json());
+      if (json.history && json.history.length) {
+        json.history.forEach(r => {
+          pushChart(r);
+          addTableRow(r);
+        });
+        applyReading(json.history[json.history.length - 1]);
+      }
+    } catch (e) {
+      console.warn("Could not load history:", e);
+    }
+  }
+
+  /* ════════════════════════════════
+     SSE live stream
+  ════════════════════════════════ */
+  function connectSSE() {
+    const es = new EventSource("/api/stream");
+
+    es.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "reading") {
+        applyReading(msg.data);
+        pushChart(msg.data);
+        addTableRow(msg.data, true); // prepend newest at top
+      }
+    };
+
+    es.onerror = () => {
+      document.getElementById("status-pill").className = "status-pill";
+      document.getElementById("status-text").textContent = "Reconnecting...";
+      es.close();
+      setTimeout(connectSSE, 3000);
+    };
+  }
+
+  /* ── Init ── */
+  loadHistory().then(() => connectSSE());
+</script>
+</body>
+</html>
